@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import type React from "react";
+import { useState, useEffect } from "react";
 
 type Todo = {
   id: string;
@@ -10,6 +11,8 @@ type Todo = {
 
 type Filter = "all" | "active" | "completed";
 
+const STORAGE_KEY = "todos";
+
 function generateId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -17,10 +20,44 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${Math.random().toString(36).substring(2, 15)}`;
 }
 
+function loadTodosFromStorage(): Todo[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTodosToStorage(todos: Todo[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export default function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadedTodos = loadTodosFromStorage();
+    setTodos(loadedTodos);
+    setHasLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (hasLoaded) {
+      saveTodosToStorage(todos);
+    }
+  }, [todos, hasLoaded]);
 
   const addTodo = () => {
     if (inputValue.trim()) {
@@ -44,6 +81,38 @@ export default function TodoList() {
 
   const deleteTodo = (id: string) => {
     setTodos(todos.filter((todo) => todo.id !== id));
+  };
+
+  const startEdit = (todo: Todo) => {
+    setEditingId(todo.id);
+    setEditValue(todo.text);
+  };
+
+  const saveEdit = (id: string) => {
+    if (editValue.trim()) {
+      setTodos(
+        todos.map((todo) =>
+          todo.id === id ? { ...todo, text: editValue.trim() } : todo
+        )
+      );
+      setEditingId(null);
+      setEditValue("");
+    } else {
+      cancelEdit();
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: string) => {
+    if (e.key === "Enter") {
+      saveEdit(id);
+    } else if (e.key === "Escape") {
+      cancelEdit();
+    }
   };
 
   const filteredTodos = todos.filter((todo) => {
@@ -143,24 +212,55 @@ export default function TodoList() {
                   onChange={() => toggleTodo(todo.id)}
                   aria-label={`Mark "${todo.text}" as ${todo.completed ? 'incomplete' : 'complete'}`}
                   className="w-5 h-5 text-blue-500 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  disabled={editingId === todo.id}
                 />
-                <span
-                  className={`flex-1 ${
-                    todo.completed
-                      ? "line-through text-gray-500 dark:text-gray-400"
-                      : "text-gray-800 dark:text-gray-100"
-                  }`}
-                >
-                  {todo.text}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => deleteTodo(todo.id)}
-                  aria-label={`Delete "${todo.text}"`}
-                  className="px-3 py-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 rounded transition-colors"
-                >
-                  Delete
-                </button>
+                {editingId === todo.id ? (
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => handleEditKeyDown(e, todo.id)}
+                    onBlur={() => saveEdit(todo.id)}
+                    autoFocus
+                    className="flex-1 px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-gray-100"
+                    aria-label="Edit todo"
+                  />
+                ) : (
+                  <span
+                    className={`flex-1 ${
+                      todo.completed
+                        ? "line-through text-gray-500 dark:text-gray-400"
+                        : "text-gray-800 dark:text-gray-100"
+                    }`}
+                    onDoubleClick={() => !todo.completed && startEdit(todo)}
+                    title={todo.completed ? undefined : "Double-click to edit"}
+                  >
+                    {todo.text}
+                  </span>
+                )}
+                {editingId !== todo.id && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(todo)}
+                      aria-label={`Edit "${todo.text}"`}
+                      disabled={todo.completed}
+                      className={`px-3 py-1 text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded transition-colors ${
+                        todo.completed ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteTodo(todo.id)}
+                      aria-label={`Delete "${todo.text}"`}
+                      className="px-3 py-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 rounded transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
               </li>
             ))
           )}
