@@ -10,6 +10,13 @@ type Todo = {
 
 type Filter = "all" | "active" | "completed";
 
+function generateId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${Math.random().toString(36).substring(2, 15)}`;
+}
+
 export default function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -18,7 +25,7 @@ export default function TodoList() {
   const addTodo = () => {
     if (inputValue.trim()) {
       const newTodo: Todo = {
-        id: Date.now().toString(),
+        id: generateId(),
         text: inputValue.trim(),
         completed: false,
       };
@@ -47,7 +54,7 @@ export default function TodoList() {
 
   const activeCount = todos.filter((todo) => !todo.completed).length;
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       addTodo();
     }
@@ -65,7 +72,7 @@ export default function TodoList() {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             placeholder="Add a new todo..."
             className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-800 dark:text-gray-100"
           />
@@ -129,6 +136,7 @@ export default function TodoList() {
                   type="checkbox"
                   checked={todo.completed}
                   onChange={() => toggleTodo(todo.id)}
+                  aria-label={`Mark "${todo.text}" as ${todo.completed ? 'incomplete' : 'complete'}`}
                   className="w-5 h-5 text-blue-500 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 />
                 <span
@@ -141,7 +149,9 @@ export default function TodoList() {
                   {todo.text}
                 </span>
                 <button
+                  type="button"
                   onClick={() => deleteTodo(todo.id)}
+                  aria-label={`Delete "${todo.text}"`}
                   className="px-3 py-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 rounded transition-colors"
                 >
                   Delete
