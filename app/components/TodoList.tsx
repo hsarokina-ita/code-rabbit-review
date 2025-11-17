@@ -68,17 +68,21 @@ export default function TodoList() {
         </h1>
 
         <div className="flex gap-2 mb-6">
+          <label htmlFor="todo-input" className="sr-only">
+            Add a new todo
+          </label>
           <input
+            id="todo-input"
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Add a new todo..."
-            aria-label="Add a new todo"
             className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-800 dark:text-gray-100"
           />
           <button
             onClick={addTodo}
+            aria-label="Add todo"
             className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
           >
             Add
