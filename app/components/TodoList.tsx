@@ -220,7 +220,6 @@ export default function TodoList() {
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     onKeyDown={(e) => handleEditKeyDown(e, todo.id)}
-                    onBlur={() => saveEdit(todo.id)}
                     autoFocus
                     className="flex-1 px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-gray-100"
                     aria-label="Edit todo"
